@@ -16,30 +16,28 @@ class MMAController(Controller):
 
         self.models = [self.model1, self.model2, self.model3]
         self.i = 0
-        self.Tp = Tp
 
+        self.Tp = Tp
         self.prev_u = np.zeros(2)
+
+        self.Kp = np.diag([25, 30])
+        self.Kd = np.diag([30, 40])
 
     def choose_model(self, x):
         # TODO: Implement procedure of choosing the best fitting model from self.models (by setting self.i)
 
         """Wybiera model, który najlepiej pasuje do rzeczywistego x_dot."""
-        min_error = float('inf')
-        for i, model in enumerate(self.models):
-            # Przewidywanie stanu z modelu
+
+        errors = []
+
+        for model in self.models:
 
             x_dot = model.x_dot(x, self.prev_u)
+            x_mi = x + x_dot * self.Tp
 
-            # Zaktualizowanie stanu o krok czasowy Tp
-            x_mi = x + x_dot * self.Tp  # Integracja numeryczna (metoda Eulera)
+            errors.append(np.linalg.norm(x - x_mi))
 
-            # Obliczanie błędu (różnica między rzeczywistym stanem a przewidywanym stanem)
-            error = np.linalg.norm(x - x_mi)
-
-            if error < min_error:
-                min_error = error
-                self.i = i
-
+        self.i = np.argmin(errors)
 
 
     def calculate_control(self, x, q_r, q_r_dot, q_r_ddot):
@@ -48,10 +46,7 @@ class MMAController(Controller):
         q = x[:2]
         q_dot = x[2:]
 
-        Kp = np.diag([25, 30])
-        Kd = np.diag([30, 40])
-
-        v = q_r_ddot + Kd @ (q_r_dot - q_dot) + Kp @ (q_r - q)
+        v = q_r_ddot + self.Kd @ (q_r_dot - q_dot) + self.Kp @ (q_r - q)
         M = self.models[self.i].M(x)
         C = self.models[self.i].C(x)
         u = M @ v[:, np.newaxis] + C @ q_dot[:, np.newaxis]
