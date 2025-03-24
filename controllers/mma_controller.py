@@ -19,6 +19,7 @@ class MMAController(Controller):
 
         self.Tp = Tp
         self.prev_u = np.zeros(2)
+        self.prev_x = np.zeros(4)
 
         self.Kp = np.diag([25, 30])
         self.Kd = np.diag([30, 40])
@@ -28,14 +29,17 @@ class MMAController(Controller):
 
         """Wybiera model, który najlepiej pasuje do rzeczywistego x_dot."""
 
+        # z poprzedniego symulacja i porównanie z aktualnym
         errors = []
 
         for model in self.models:
 
-            x_dot = model.x_dot(x, self.prev_u)
-            x_mi = x + x_dot * self.Tp
+            x_dot = model.x_dot(self.prev_x, self.prev_u)
+            #print(x_dot)
+            x_mi = self.prev_x.reshape(4,1) + x_dot * self.Tp
 
-            errors.append(np.linalg.norm(x - x_mi))
+            errors.append(np.sum(np.abs(x.reshape(4,1) - x_mi)))
+            #print(x_mi)
 
         self.i = np.argmin(errors)
 
@@ -45,13 +49,14 @@ class MMAController(Controller):
 
         q = x[:2]
         q_dot = x[2:]
-
-        v = q_r_ddot + self.Kd @ (q_r_dot - q_dot) + self.Kp @ (q_r - q)
+        v = q_r_ddot
+        #v = q_r_ddot + self.Kd @ (q_r_dot - q_dot) + self.Kp @ (q_r - q)
         M = self.models[self.i].M(x)
         C = self.models[self.i].C(x)
         u = M @ v[:, np.newaxis] + C @ q_dot[:, np.newaxis]
 
         self.prev_u = u
+        self.prev_x = x
         return u
 
 
