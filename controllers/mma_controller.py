@@ -47,10 +47,16 @@ class MMAController(Controller):
     def calculate_control(self, x, q_r, q_r_dot, q_r_ddot):
         self.choose_model(x)
 
+        isFLC = True
+
         q = x[:2]
         q_dot = x[2:]
-        v = q_r_ddot
-        #v = q_r_ddot + self.Kd @ (q_r_dot - q_dot) + self.Kp @ (q_r - q)
+
+        if isFLC:
+            v = q_r_ddot + self.Kd @ (q_r_dot - q_dot) + self.Kp @ (q_r - q)
+        else:
+            v = q_r_ddot
+
         M = self.models[self.i].M(x)
         C = self.models[self.i].C(x)
         u = M @ v[:, np.newaxis] + C @ q_dot[:, np.newaxis]
