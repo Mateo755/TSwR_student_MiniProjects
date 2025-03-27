@@ -8,6 +8,7 @@ class ADRCJointController(Controller):
         self.b = b
         self.kp = kp
         self.kd = kd
+        self.prev_u = 0
 
         A = np.array([
             [0, 1, 0],
@@ -45,4 +46,22 @@ class ADRCJointController(Controller):
 
     def calculate_control(self, x, q_d, q_d_dot, q_d_ddot):
         ### TODO implement ADRC
-        return NotImplementedError
+
+        isADRC = True
+
+        q = x[0]
+
+        self.eso.update(q, self.prev_u)
+
+        q_hat, q_dot_hat, f_hat = self.eso.get_state()
+
+        v = q_d_ddot + self.kd * (q_d_dot - q_dot_hat) + self.kp * (q_d - q_hat)
+
+        if isADRC:
+            u = (v - f_hat) / self.b
+        else:
+            u = v / self.b
+
+        self.prev_u = u
+
+        return u
