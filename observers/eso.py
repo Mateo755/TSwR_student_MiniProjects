@@ -19,13 +19,15 @@ class ESO:
         self.states.append(copy(self.state.flatten()))
         ### TODO implement ESO update
 
-        z_hat = np.reshape(self.state, (len(self.state), 1))
+        z_hat = self.state.reshape(-1, 1)
 
-        y=q
+        y = np.atleast_2d(q).reshape(-1, 1)  # (2,1)
+        u = np.atleast_1d(u).reshape(-1, 1)
+
         y_hat = self.W @ z_hat
-        eso_erorr = y - y_hat                   # e = y - W * z_hat
+        eso_erorr = y - y_hat       # e = y - W * z_hat
 
-        z_dot_hat = self.A @ z_hat + self.B @ np.atleast_2d(u) + self.L @ eso_erorr
+        z_dot_hat = self.A @ z_hat + self.B @ u + self.L @ eso_erorr
 
         self.state = z_hat + self.Tp * z_dot_hat
 

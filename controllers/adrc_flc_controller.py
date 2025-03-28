@@ -10,7 +10,7 @@ from models.manipulator_model import ManiuplatorModel
 class ADRFLController(Controller):
     def __init__(self, Tp, q0, Kp, Kd, p):
 
-        self.model = ManiuplatorModel(Tp)
+        self.model = ManiuplatorModel(Tp, 3, 0.05)
 
         self.Kp = Kp
         self.Kd = Kd
@@ -66,4 +66,24 @@ class ADRFLController(Controller):
 
     def calculate_control(self, x, q_d, q_d_dot, q_d_ddot):
         ### TODO implement centralized ADRFLC
-        return NotImplementedError
+
+        q = x[:2]
+
+        z_hat = self.eso.get_state()
+        q_hat = z_hat[0:2]
+        q_dot_hat = z_hat[2:4]
+        f_hat = z_hat[4:6]
+
+        v = q_d_ddot + self.Kd @ (q_d_dot - q_dot_hat) + self.Kp @ (q_d - q_hat)
+
+
+        # Wyznaczenie momentów sił τ
+        u = self.model.M(x) @ (v - f_hat).reshape(2, 1)  + self.model.C(x) @ q_dot_hat.reshape(2, 1)
+        u = u.flatten()
+
+        self.update_params(q_hat, q_dot_hat)
+        self.eso.update(q, u)
+
+        return u
+
+
